@@ -32,6 +32,7 @@
 import { PROTOCOL_VERSION, ERR_TEXT } from '../../shared/constants.js';
 import { validateC2S } from '../../shared/protocol.js';
 import { N_ } from '../../shared/i18n.js';
+import { preferenceStorage } from './preferences.js';
 
 export const REQUEST_TIMEOUT_MS = 8000;
 export const HELLO_TIMEOUT_MS = 8000;
@@ -912,9 +913,9 @@ export function createIdentity(deps = {}) {
       finally { resumeBusy = false; }
     },
     /** @returns {string} remembered player name ('' if none) */
-    loadName: () => (sget(local, K_NAME) || '').slice(0, 64),
+    loadName: () => (sget(deps.local !== undefined ? local : preferenceStorage(), K_NAME) || '').slice(0, 64),
     /** @param {string} name */
-    saveName: (name) => sset(local, K_NAME, String(name)),
+    saveName: (name) => sset(deps.local !== undefined ? local : preferenceStorage(), K_NAME, String(name)),
     /** Token for `hello` (null ⇒ new session). Before init() only this tab's own token is used. */
     getToken() {
       if (current) return current;

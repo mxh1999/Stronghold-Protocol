@@ -175,6 +175,11 @@ public/assets/ ─────────▶ public/js/render/, public/js/audio
 
 ## 6. Where to start
 
+Optional deployment: [accounts and automatic saves](../extensions/accounts/README.md) adds a main-page login button.
+SQLite holds only credentials/sessions; native preference and statistics values live in per-account JSON files.
+An HTTP hook in two files and the client preference-storage interface isolate it from gameplay and WebSockets. The
+extension hydrates storage before importing the unchanged main module. The stock entry remains local-only.
+
 | to change … | start at | then |
 |---|---|---|
 | an operator's skill, talent or module | its kit in `server/sim/content/kits/ops/` (search for the chess id or the Chinese name) | the fidelity checklist of `server/sim/content/kits/README.md`, a test in `test/content/`, golden |

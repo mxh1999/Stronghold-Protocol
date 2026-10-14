@@ -1,7 +1,7 @@
-// Local match statistics: every match the local player took part in is appended as one record to localStorage
-// (`sp.pref.stats`). Per-browser only — the server keeps matches in memory and has no identity, so there is nowhere
-// else for cross-match numbers to live; nothing here is ever sent anywhere. The stats page labels itself 本机数据 and
-// offers JSON export / import for moving between devices. (Ported from PR #323 by @2321Robin, reworked for 0.2.2.)
+// Match statistics: each match the player took part in becomes one record in `sp.pref.stats`.
+// The default backend is localStorage. An optional deployment can persist the same envelope remotely, without
+// changing record generation or aggregation. The stats page follows the selected storage backend.
+// (Ported from PR #323 by @2321Robin, reworked for 0.2.2.)
 //
 // Two kinds of record (`end`):
 //   'settled'  the match reached its settlement: m.result arrived (server/match/results.js buildResult). The record
@@ -35,6 +35,7 @@
 // saveStats / their helpers.
 
 import { PHASE } from '../../../shared/constants.js';
+import { preferenceStorage } from '../preferences.js';
 
 /** Current record-envelope version (bump + add a MIGRATIONS step when the record shape changes). */
 export const STATS_VERSION = 1;
@@ -256,7 +257,7 @@ export function migrateStats(raw) {
 
 /** Read the raw stored string (null when absent or unreadable). */
 function readRaw() {
-  try { return globalThis.localStorage?.getItem(FULL_KEY) ?? null; } catch { return null; }
+  try { return preferenceStorage()?.getItem(FULL_KEY) ?? null; } catch { return null; }
 }
 
 /**
@@ -271,7 +272,7 @@ export function loadStats() {
   try { parsed = JSON.parse(raw); } catch { parsed = undefined; }
   if (!isObj(parsed) || !Array.isArray(parsed.records)) {
     // keep the bad value where a person can find it; if even that write fails the next save simply replaces it
-    try { globalThis.localStorage?.setItem(DAMAGED_KEY, raw); globalThis.localStorage?.removeItem(FULL_KEY); } catch { /* keep it in place */ }
+    try { preferenceStorage()?.setItem(DAMAGED_KEY, raw); preferenceStorage()?.removeItem(FULL_KEY); } catch { /* keep it in place */ }
     return { ...emptyStats(), newer: false, dropped: 0, damaged: true };
   }
   const { stats, changed, newer, dropped } = migrateStats(parsed);
@@ -333,7 +334,7 @@ export function saveStats(stats) {
   let recs = fitToBudget(stats.records);
   for (;;) {
     try {
-      const ls = globalThis.localStorage;
+      const ls = preferenceStorage();
       if (!ls) return false; // no storage at all (disabled by the browser)
       ls.setItem(FULL_KEY, JSON.stringify({ v: STATS_VERSION, records: recs }));
       return true;

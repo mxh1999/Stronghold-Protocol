@@ -22,6 +22,7 @@
 import { useLayoutEffect, useReducer, useRef } from '../vendor/hooks.module.js';
 import { PHASE } from '../../shared/constants.js';
 import { t } from '../../shared/i18n.js';
+import { preferenceStorage } from './preferences.js';
 
 /**
  * Create an observable store.
@@ -157,10 +158,10 @@ export function shallowEqual(a, b) {
   return true;
 }
 
-// ---- tiny persisted preferences (localStorage, failure-tolerant) --------------------------------
+// ---- persisted preferences (localStorage by default, optional deployment backend) ---------------
 
 /**
- * Read a JSON preference from localStorage.
+ * Read a JSON preference from the selected persistence backend.
  * @template T
  * @param {string} key
  * @param {T} fallback
@@ -168,7 +169,7 @@ export function shallowEqual(a, b) {
  */
 export function loadPref(key, fallback) {
   try {
-    const raw = globalThis.localStorage?.getItem(`sp.pref.${key}`);
+    const raw = preferenceStorage()?.getItem(`sp.pref.${key}`);
     return raw == null ? fallback : JSON.parse(raw);
   } catch {
     return fallback;
@@ -176,12 +177,12 @@ export function loadPref(key, fallback) {
 }
 
 /**
- * Write a JSON preference to localStorage (silently ignores quota/privacy errors).
+ * Write a JSON preference to the selected backend (silently ignores quota/privacy errors).
  * @param {string} key
  * @param {any} value
  */
 export function savePref(key, value) {
-  try { globalThis.localStorage?.setItem(`sp.pref.${key}`, JSON.stringify(value)); } catch { /* ignore */ }
+  try { preferenceStorage()?.setItem(`sp.pref.${key}`, JSON.stringify(value)); } catch { /* ignore */ }
 }
 
 const identity = (s) => s;

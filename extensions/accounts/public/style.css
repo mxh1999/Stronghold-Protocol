@@ -1,0 +1,16 @@
+.account-controls { position: fixed; bottom: 48px; left: 20px; z-index: 900; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: calc(100vw - 40px); padding: 8px 12px; border: 1px solid #395248; border-radius: 6px; background: #101e19ed; color: #d1e5db; font: 13px/1.4 system-ui, sans-serif; }
+.account-controls button, .account-dialog button { cursor: pointer; padding: 8px 14px; border: 1px solid #4c7663; border-radius: 4px; background: #203b2f; color: #b8f3d5; font: inherit; }
+.account-controls [hidden] { display: none; }
+.account-controls button:disabled, .account-dialog button:disabled { opacity: .5; cursor: wait; }
+.account-name { font-weight: 600; }
+.account-dialog { color-scheme: dark; width: min(420px, calc(100vw - 48px)); max-height: 85vh; overflow: auto; border: 1px solid #4c7663; border-radius: 10px; padding: 24px; background: #111e19; color: #dfebe5; font: 15px/1.6 system-ui, sans-serif; }
+.account-dialog::backdrop { background: #000b; }
+.account-dialog h2 { margin-top: 0; }
+.account-dialog p, .account-dialog small { color: #b0c4b9; }
+.account-dialog form, .account-dialog label { display: grid; gap: 8px; }
+.account-dialog form { gap: 14px; }
+.account-dialog input { width: 100%; box-sizing: border-box; background: #0b1511; color: inherit; border: 1px solid #4c7663; border-radius: 4px; padding: 9px 12px; font: inherit; }
+.account-dialog input:focus-visible, .account-controls button:focus-visible, .account-dialog button:focus-visible { outline: 2px solid #78dfb2; outline-offset: 2px; }
+.account-dialog .account-close { float: right; padding: 3px 8px; margin-left: 10px; }
+.account-dialog [role="status"] { min-height: 1em; margin: 0; color: #f0ce8b; }
+@media (max-width: 600px) { .account-controls { bottom: 12px; left: 12px; font-size: 11px; gap: 6px; max-width: calc(100vw - 48px); } }

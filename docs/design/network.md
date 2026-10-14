@@ -4,6 +4,10 @@ Part of [DESIGN.md](../DESIGN.md) (the index; section numbers are global).
 
 ## 8. Network protocol (shared/protocol.js is normative)
 
+Optional deployment accounts (§31.12) persist client preferences through separate authenticated HTTP APIs. They do
+not change this game protocol, require game login, or record matches on the server. The extension uses the optional
+`requestExtension` HTTP entry hook; see [accounts and automatic saves](../../extensions/accounts/README.md).
+
 Transport: one WebSocket per tab at `/ws`, JSON text frames `{ t: '<type>', ...payload }`. Client requests may carry `rid` (request id); the server's direct reply echoes `rid` (`ok` or `error`). Server pushes have no `rid`. Max frame 64 KB inbound (a compressed frame counts its inflated size); rate limit 40 msgs/s per connection (excess dropped with `error RATE`). Frames from 1 KB up are compressed with permessage-deflate (RFC 7692; `server/http/websocket.js WS_DEFLATE`: no server context takeover, a 2 KB server window, zlib memLevel 7 — about 72 KB of zlib state per connection); smaller frames go out plain, and a client that offers no compression, or caps the server window below 2 KB, gets plain frames. A measured solo session (rounds 3–5, `/healthz?traffic=1`): 173 KB of server frames → 60 KB on the wire.
 
 ### 8.1 Session & lobby

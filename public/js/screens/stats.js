@@ -10,11 +10,12 @@
 //   对局记录  – every stored match, newest first. A settled row re-views that match's settlement screen (the record is
 //               inverted into an m.result payload for <ResultView/>); a match given up early is marked 中途退出 and,
 //               when it did not count, 不计入统计
-// Everything is 本机数据 (localStorage, `sp.pref.stats`) and the page says so, teammates' names included. 导出 / 导入 (a
-// JSON file, merged by record id on the way in) moves it between devices; 清空 resets it after a confirm dialog.
+// The default backend is localStorage (`sp.pref.stats`), with JSON import/export and a confirmed clear action.
+// Optional remote persistence reuses this viewer, hides file transfers, and labels the storage location explicitly.
 // The host renders nothing until opened and the game data files the replay needs load only then (the lobby alone never
 // downloads them): the overview reads config / bands / assets only.
 
+import { hasRemotePreferences, preferenceStorage } from '../preferences.js';
 import { useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.js';
 import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS } from '../../../shared/constants.js';
 import { html, Icon, MicroLabel, Spinner, Button, confirmDialog } from '../ui/components.js';
@@ -302,12 +303,12 @@ function StatsScreen({ tab }) {
   const doClear = async () => {
     const ok = await confirmDialog({
       title: t('清空统计数据'), micro: 'CLEAR STATISTICS', danger: true, okText: t('清空'),
-      text: t('将删除本机保存的 {n} 条对局记录，无法恢复。', { n: stats.records.length }),
+      text: hasRemotePreferences() ? t('将删除账户保存的 {n} 条对局记录，无法恢复。', { n: stats.records.length }) : t('将删除本机保存的 {n} 条对局记录，无法恢复。', { n: stats.records.length }),
     });
     if (!ok) return;
-    if (!saveStats(emptyStats())) { try { globalThis.localStorage?.removeItem('sp.pref.stats'); } catch { /* ignore */ } }
+    if (!saveStats(emptyStats())) { try { preferenceStorage()?.removeItem('sp.pref.stats'); } catch { /* ignore */ } }
     reload();
-    toast(t('已清空本机统计数据'), 'success');
+    toast(hasRemotePreferences() ? t('已清空账户统计数据') : t('已清空本机统计数据'), 'success');
   };
 
   if (replay) return html`<div class="st st--replay" ref=${boxRef} tabindex="-1" role="dialog" aria-modal="true" aria-label=${t('统计数据')}>
@@ -330,13 +331,13 @@ function StatsScreen({ tab }) {
         </div>
       </div>
       <div class="st-top__right">
-        <${Button} variant="ghost" size="sm" data-testid="stats-export" disabled=${empty || stats.newer} onClick=${doExport} title=${t('导出为文件（可在别的设备上导入）')}>${t('导出')}<//>
-        <${Button} variant="ghost" size="sm" data-testid="stats-import" disabled=${stats.newer} onClick=${() => fileRef.current?.click()} title=${t('从导出的文件导入（与现有记录合并）')}>${t('导入')}<//>
+        ${!hasRemotePreferences() && html`<${Button} variant="ghost" size="sm" data-testid="stats-export" disabled=${empty || stats.newer} onClick=${doExport} title=${t('导出为文件（可在别的设备上导入）')}>${t('导出')}<//>`}
+        ${!hasRemotePreferences() && html`<${Button} variant="ghost" size="sm" data-testid="stats-import" disabled=${stats.newer} onClick=${() => fileRef.current?.click()} title=${t('从导出的文件导入（与现有记录合并）')}>${t('导入')}<//>`}
         <input ref=${fileRef} type="file" accept="application/json,.json" hidden onChange=${doFile} />
-        <${Button} variant="secondary" size="sm" data-testid="stats-clear" disabled=${empty || stats.newer} onClick=${doClear} title=${t('清空本机的统计数据')}>${t('清空')}<//>
+        <${Button} variant="secondary" size="sm" data-testid="stats-clear" disabled=${empty || stats.newer} onClick=${doClear} title=${t('清空统计数据')}>${t('清空')}<//>
       </div>
     </header>
-    <p class="st-note"><${Icon} name="info" />${t('本机数据：只保存在这个浏览器里，不会上传到服务器；同盟对局里队友的代号也会存在本机（导出文件里也有）。')}</p>
+    <p class="st-note"><${Icon} name="info" />${hasRemotePreferences() ? t('账户数据：配置和战绩自动保存到服务器，同盟队友的代号也会随战绩保存。') : t('本机数据：只保存在这个浏览器里，不会上传到服务器；同盟对局里队友的代号也会存在本机（导出文件里也有）。')}</p>
     ${stats.damaged ? html`<p class="st-note is-warn"><${Icon} name="warn" />${t('本机保存的统计数据无法读取，已另存为备份，从现在起重新记录。')}</p>` : null}
     ${stats.dropped ? html`<p class="st-note is-warn"><${Icon} name="warn" />${t('有 {n} 条记录已损坏，已忽略。', { n: stats.dropped })}</p>` : null}
     <main class="st-body" data-tab=${tab}>

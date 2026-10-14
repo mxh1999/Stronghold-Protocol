@@ -1,0 +1,11 @@
+{
+  "name": "stronghold-account-saves",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node start.mjs",
+    "test": "node --test test/*.test.mjs",
+    "lint": "eslint ."
+  }
+}
