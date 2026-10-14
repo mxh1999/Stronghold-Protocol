@@ -62,21 +62,23 @@ test('plan: audio.voiceJp is the JP dub (ArknightsAssets2 voice/) of the very sl
   assert.ok(plan({ voiceSlots: null }).audio.voiceJp.char_263_skadi.gacha);
 });
 
-test('data/assets.json: voiceJp gives every voiced operator the JP twin of each Chinese line (192 operators, 2688 files); stand-ins, 盟约·辅助干员 and summons have neither', () => {
+test('data/assets.json: JP voices cover Chinese voices plus two JP-only collaborations; stand-ins and summons have neither', () => {
   const m = readJson('data/assets.json');
   const cn = m.audio.voice;
   const jp = m.audio.voiceJp;
   assert.ok(jp && typeof jp === 'object', 'the manifest carries the JP tree');
-  assert.deepEqual(Object.keys(jp), Object.keys(cn), 'the same operators');
+  const jpOnly = ['char_4182_oblvns', 'char_4217_makoto'];
+  assert.deepEqual(Object.keys(jp).sort(), [...Object.keys(cn), ...jpOnly].sort());
   assert.equal(m.stats.voiceJpChars, Object.keys(jp).length);
   assert.equal(m.stats.voiceChars, Object.keys(cn).length);
-  assert.equal(Object.keys(jp).length, 192);
+  assert.equal(Object.keys(jp).length, 194);
   // the JP tree is the Chinese one with the folder swapped: same slots, same lines in the same order, same file names
-  assert.deepEqual(JSON.parse(JSON.stringify(cn).replaceAll('/assets/audio/voice/cn/', '/assets/audio/voice/jp/')), jp);
+  assert.deepEqual(JSON.parse(JSON.stringify(cn).replaceAll('/assets/audio/voice/cn/', '/assets/audio/voice/jp/')),
+    Object.fromEntries(Object.entries(jp).filter(([id]) => !jpOnly.includes(id))));
   const lines = [];
   const walk = (x) => { if (typeof x === 'string') lines.push(x); else if (Array.isArray(x)) x.forEach(walk); else if (x && typeof x === 'object') Object.values(x).forEach(walk); };
   walk(jp);
-  assert.equal(lines.length, 2688);
+  assert.equal(lines.length, 2716);
   for (const u of lines) assert.match(u, /^\/assets\/audio\/voice\/jp\/char_[^/]+\/cn_\d+\.mp3$/);
   // no voice: the 17 stand-ins of data/backups.json (预备干员 / 原型干员), the mode's 盟约·辅助干员, every summon
   const backups = readJson('data/backups.json');

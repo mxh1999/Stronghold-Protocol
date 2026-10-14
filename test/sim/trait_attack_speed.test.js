@@ -370,11 +370,8 @@ test('覆盖锁定: 全数据 266 个棋子 × 全部模组选择里，被引擎
   assert.ok(refused.some((t) => t.startsWith('chess_char_4_09_b|uniequip_004_mizuki|50|mode')), '水月 ISW-A is in the list');
 });
 
-test('覆盖锁定（补位 / 自选）: 每个补位干员和每个自选组合（池内干员 × 两种形态 × 技能 × 可选模组）都不被引擎接管', () => {
-  // 0.2.2 maintainer addition to PR #293: the battle also fields 补位 stand-ins (getChess(id, { standIn: true })) and
-  // 自选 picks (getChess(slot, { diy })) — 6★ operators whose own modules carry trait attack-speed lines. None may gain
-  // the engine rule: their lines are either absent or owned by their kits (黑键 / 维伊 MSC-Y, 赤刃明霄陈 AFT, 重岳 / 贝洛内
-  // FGT-Y, 止颂 DRE-Y → 'kit'); a module of another game mode is not a legal pick (isDiyModule, validateDiyPicks).
+test('stand-in / DIY trait coverage: only Sakiko LOR-Y uses the generic conditional attack-speed rule', () => {
+  // Scan every loadout: other attack-speed traits remain kit-owned; Sakiko uses the existing range-count rule.
   const applied = [];
   const reasons = {};
   const tally = { standIn: 0, diy: 0 };
@@ -411,6 +408,7 @@ test('覆盖锁定（补位 / 自选）: 每个补位干员和每个自选组合
   }
   assert.ok(tally.standIn > 100, `every stand-in was scanned (${tally.standIn})`);
   assert.ok(tally.diy > 1000, `every 自选 combination was scanned (${tally.diy})`);
-  assert.deepEqual(applied, [], 'no stand-in or 自选 pick gains the engine rule');
-  assert.deepEqual(Object.keys(reasons).sort(), ['kit'], 'every line they carry is a kit-owned shape (no unknown, no other mode)');
+  assert.deepEqual(applied, [5, 6].flatMap((tier) => [1, 2].flatMap((slot) => [0, 1, 2].map((skill) =>
+    `diy chess_char_${tier}_diy${slot}_b|char_4182_oblvns|${skill}|uniequip_002_oblvns`))));
+  assert.deepEqual(Object.keys(reasons).sort(), ['kit', 'ok'], 'no unknown or mode-specific trait');
 });

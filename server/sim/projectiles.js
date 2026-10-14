@@ -37,6 +37,7 @@ export class ProjectileSystem {
       source: p.source ?? (p.from && p.from.id != null ? p.from : null),
       hitDead: !!p.hitDead,
       data: p.data ?? null,
+      advance: p.advance ?? null,
       age: 0,
       maxAge: p.maxAge > 0 ? p.maxAge : 10,
     };
@@ -50,6 +51,11 @@ export class ProjectileSystem {
     const arrived = [];
     for (const p of this.list) {
       p.age += dt;
+      // Special trajectories own movement and impact within the normal projectile lifecycle.
+      if (p.advance) {
+        if (this.battle._safe(() => p.advance(p, dt), 'projectile.advance', p.source)) keep.push(p);
+        continue;
+      }
       if (p.target) {
         if (p.target.alive && !p.target.hidden && p.target.deploySeq === p.tseq) { p.tx = fin(p.target.x, p.tx); p.ty = fin(p.target.y, p.ty); }
         else if (!p.hitDead) continue; // fizzle

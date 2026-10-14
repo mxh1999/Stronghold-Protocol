@@ -108,13 +108,13 @@ export function updateAlly(b, u, dt) {
     if (prof.noAttack || !u.alive) return;
     targets = acquireTargets(b, u, prof);
   }
-  if (!targets.length) { u.trait.hadTarget = false; storeEnergy(b, u, prof); return; }
+  if (!targets.length && !prof.attackWithoutTarget?.(b, u)) { u.trait.hadTarget = false; storeEnergy(b, u, prof); return; }
   u.trait.hadTarget = true;
   if (sk && sk.onAboutToAttack()) {
     prof = effectiveProfile(u);
     if (prof.noAttack || !u.alive) return;
     targets = acquireTargets(b, u, prof);
-    if (!targets.length) { storeEnergy(b, u, prof); return; }   // the cast left none (a range change): still this check
+    if (!targets.length && !prof.attackWithoutTarget?.(b, u)) { storeEnergy(b, u, prof); return; }
   }
   performAttack(b, u, prof, targets);
   u.atkCd = Math.max(u.atkCd, u.s.interval);
@@ -215,7 +215,7 @@ export function performAttack(b, u, prof, targets, opts = null) {
     const ctx = { attacker: u, targets, isSkill, profile: prof };
     b.emit('beforeAttack', ctx);
     targets = (ctx.targets || []).filter((t) => t && t.alive);
-    if (!targets.length || !u.alive) return;
+    if ((!targets.length && !prof.attackWithoutTarget?.(b, u)) || !u.alive) return;
   }
   u.lastAttackAt = b.time;
   u.stats.attacks++;
@@ -231,7 +231,9 @@ export function performAttack(b, u, prof, targets, opts = null) {
   const vis = prof._fortressMelee ? 'none' : (prof.projectile || 'none');
   // 秘术师: the stored energies leave with this attack, at its main target (professions.js installMystic)
   const energy = !isHeal && prof.releaseEnergy ? prof.releaseEnergy(b, u) : 0;
-  for (let i = 0; i < targets.length; i++) {
+  // A content-owned strike retains the normal attack cadence, hooks and attack-SP accounting.
+  if (prof.attackImpl) prof.attackImpl(b, u, targets, { attackId, isSkill });
+  else for (let i = 0; i < targets.length; i++) {
     const t = targets[i];
     b._ev(['atk', u.id, t.id, vis]);
     if (isHeal) { doHeal(b, u, prof, t); continue; }

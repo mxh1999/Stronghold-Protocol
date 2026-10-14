@@ -26,3 +26,11 @@ test('the per-operator JP preference retains the existing per-slot Chinese fallb
   assert.equal(voiceLine(tree, a, 'select', voiceLangFor(a, 'cn', { [a]: 'jp' })).url, '/cn.mp3');
   assert.equal(voiceLine(tree, a, 'skill1', voiceLangFor(a, 'cn', { [a]: 'jp' })).url, '/jp.mp3');
 });
+
+test('JP-only collaboration voices play under the default Chinese preference', () => {
+  for (const id of ['char_4182_oblvns', 'char_4217_makoto']) {
+    const tree = { voice: {}, voiceJp: { [id]: { select: '/jp.mp3' } } };
+    assert.deepEqual(voiceLine(tree, id, 'select', 'cn'), { url: '/jp.mp3', fallback: null });
+    assert.equal(voiceLine(tree, id, 'missing', 'cn'), null);
+  }
+});

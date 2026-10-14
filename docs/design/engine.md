@@ -218,6 +218,16 @@ does not pause the released drone.
 Each domain file `server/sim/content/{tokens,bonds,garrisons,items,bands,enemies,bosses,devices,choices}.js` exports `install(battle)` (battle side; called once per Battle by `content/index.js → installContent`) and `registerMeta(registry)` (prep side; called once at server boot by `match/effectsMeta.js`, API documented in `docs/META.md`). Kits live one per file in `content/kits/ops/` (`export default { [baseChessId]: (bb, chess, def) => Kit }`), listed in `content/kits/index.js` (guide: `content/kits/README.md`). Content must be **data-driven from blackboards** (numbers never hard-coded when a blackboard key exists). Every effect gets at least one unit test in `test/content/*.test.js` using the `test/helpers/battleHarness.js` harness (provided by sim-core).
 
 - kits: all 112 visible chess + hidden ones used by effects (盟约·辅助干员), default skill + talents + trait specifics; tokens. The 72 non-collaboration 6★ DIY operators include 克莱门莎 (§28.1); her launch-day provisional mechanics are local to her kit. 黍 GUA-Y and 乌尔比安 CRU-Y follow the generated module blackboards and existing module-level rules (§28.2).
+
+The downstream DIY pool additionally includes 丰川祥子 (`char_4182_oblvns`) and 结城理 (`char_4217_makoto`), both
+assigned 协防干员 by the owner's decision of 2026-10-14 (§31.17). All three skills and their LOR-Y / PUM-Y modules use
+the normal DIY training rules. Sakiko attacks without a target, launches tracking notes with cached attack power,
+shares a 450-point / 20-second Fever gauge, and grants range/attack-speed and note-count penetration effects.
+Makoto switches to his selected Persona, uses the substitute's remaining lifetime across his S3 fatal switch,
+then performs All-Out Attack using body attack power. A killed substitute has no All-Out Attack. Automatic battle
+operation opens S2 tone changes under the basic strategy; Makoto S3 retains Thanatos until fatal damage switches
+him to Orpheus, since this mode has no manual mid-skill controls. The detailed source and approximation notes are
+in §31.17. Existing operators keep their attack and projectile paths.
   忍冬's 追凶 adds arts damage on the first qualifying instance too; the per-enemy window starts on that instance,
   and repeated hits do not extend it. The addition keeps its own tag and re-entrancy guard (§30.3).
   克莱门莎 S2 removes dead, hidden, self-bound / teleport-immune and unreachable passengers before checking new

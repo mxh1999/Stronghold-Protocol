@@ -370,6 +370,17 @@ const dollRoles = (idle, die, attack = null) => Object.freeze({
   idle, deploy: idle, die, attack: attack ? Object.freeze({ begin: null, loop: attack, end: null }) : null, attackDown: null, skill: null,
 });
 export const FORMS = Object.freeze({
+  char_4182_oblvns: Object.freeze({
+    piano: Object.freeze({ change: 'Skill_2_Trans_A', roles: dollRoles('Skill_2_Idle_A', 'Die', 'Skill_2_Loop_A') }),
+    organ: Object.freeze({ change: 'Skill_2_Trans_B', roles: dollRoles('Skill_2_Idle_B', 'Die', 'Skill_2_Loop_B') }),
+  }),
+  char_4217_makoto: Object.freeze({
+    orpheus: Object.freeze({ change: 'Doll_Skill_1_SwitchIn', roles: dollRoles('Doll_Skill_1_Idle', 'Doll_Skill_1_Die', 'Doll_Skill_1_Attack') }),
+    thanatos: Object.freeze({ change: 'Doll_Skill_2_SwitchIn', roles: dollRoles('Doll_Skill_2_Loop', 'Doll_Skill_2_Die', 'Doll_Skill_2_Loop') }),
+    thanatos3: Object.freeze({ change: 'Doll_Skill_3_P1_SwitchIn', roles: dollRoles('Doll_Skill_3_P1_Idle', 'Doll_Skill_3_P2_Die', 'Doll_Skill_3_P1_Attack_A') }),
+    orpheus3: Object.freeze({ change: 'Doll_Skill_3_P1toP2_ChangeBegin', roles: dollRoles('Doll_Skill_3_P2_Loop', 'Doll_Skill_3_P2_Die') }),
+    allOut: Object.freeze({ change: 'Skill_AllOutAttack_Loop', roles: dollRoles('Skill_AllOutAttack_End', 'Doll_Skill_3_P2_Die') }),
+  }),
   char_1023_ghost2: Object.freeze({
     doll: Object.freeze({ change: 'Start_B', end: 'Die_B', leave: 'Start_2', roles: dollRoles('Idle_B', 'Die_B_2') }),
   }),

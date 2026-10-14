@@ -1165,9 +1165,8 @@ function buildChess(ctx) {
 const DIY_EXTRA_PROTOTYPES = Object.freeze({ 5: Object.freeze({ rarity: 4, excludedProfessions: Object.freeze(['PIONEER', 'SPECIAL']) }) });
 
 /**
- * 自选 owned picks left out of the data and the pool by the owner's decision of 2026-10-05: the collab operators
- * (copyright) — every 6★ whose `mainPower` or a `subPower` names one of these 联动 teams: rainbow (灰烬, 艾拉), action4
- * (麒麟R夜刀), mujica (丰川祥子), sees (结城理), laios (玛露西尔). The excel does not exclude them (research 0.2.0 §2.2).
+ * Collaboration teams excluded by the owner on 2026-10-05. The two explicit exceptions in DIY_COLLAB_SUPPORT
+ * were approved on 2026-10-14. Official slot requirements do not exclude collaborations (research 0.2.0 §2.2).
  */
 const DIY_EXCLUDED_TEAMS = Object.freeze(['rainbow', 'action4', 'mujica', 'sees', 'laios']);
 /**
@@ -1176,6 +1175,10 @@ const DIY_EXCLUDED_TEAMS = Object.freeze(['rainbow', 'action4', 'mujica', 'sees'
  * Dungeon Meshi); every other prefix in the pool is a faction (LM, NM, RE, RL, …).
  */
 const DIY_EXCLUDED_NUMBER_PREFIXES = Object.freeze(['MH', 'RS', 'AM', 'PS', 'DD']);
+
+// Owner-approved additions (2026-10-14): these two collaborations are selectable with the fallback bond,
+// including Makoto whose hidden Laterano faction would otherwise assign a different bond.
+const DIY_COLLAB_SUPPORT = new Set(['char_4182_oblvns', 'char_4217_makoto']);
 
 /**
  * The skill a prototype carries in a 自选 slot when no 补位 row of the slot's tier names it (only 预备干员-医疗 at tier 5:
@@ -1298,7 +1301,7 @@ function buildUnitForm(ctx, charId, status, { chessId = null, skillIndex = null 
  * - `diy`: the slots (tier, elite id, the shop level that lists them, the rarity requirement), the prototype picks per
  *   slot tier (DIY_EXTRA_PROTOTYPES) and the skill / module each carries there (`locked`: its 补位 rows' selection at
  *   that tier — "技能携带规则与系统补位时一致"), the owned-6★ pool (obtainable, not a roster operator: no chess names it,
- *   hidden chess included — "不可甄选加入已在名单中的固定干员" — and not a collab, DIY_EXCLUDED_TEAMS: `excluded`) and, for
+ *   hidden chess included — "不可甄选加入已在名单中的固定干员" — and not an excluded collaboration, except DIY_COLLAB_SUPPORT) and, for
  *   every pick, its faction ids (`mainPower` and every `subPower`: "依据其「所属势力」「隐藏势力」等属性决定其盟约") and the
  *   core bonds whose `powerIdList` meets them, else `constData.fallbackBondId` (协防干员) — PRTS 「卫戍协议」
  *   "甄选加入的干员会根据其实际阵营所属分配核心盟约，若没有可匹配的则改为分配协防干员盟约".
@@ -1366,8 +1369,9 @@ function buildBackups(ctx, chess) {
       && !ch.isNotObtainable && !roster.has(id);
   }).sort(naturalCmp);
   const collabNumber = (ch) => DIY_EXCLUDED_NUMBER_PREFIXES.some((p) => new RegExp(`^${p}\\d`).test(ch.displayNumber || ''));
-  const excluded = legal6.filter((id) => teamsOf(charTable[id]).some((t) => excludedTeams.has(t)) || collabNumber(charTable[id]));
-  for (const t of DIY_EXCLUDED_TEAMS) if (!excluded.some((id) => teamsOf(charTable[id]).includes(t))) warn(`DIY_EXCLUDED_TEAMS: no owned-6★ pick of team ${t}`);
+  const excluded = legal6.filter((id) => !DIY_COLLAB_SUPPORT.has(id)
+    && (teamsOf(charTable[id]).some((t) => excludedTeams.has(t)) || collabNumber(charTable[id])));
+  for (const t of DIY_EXCLUDED_TEAMS) if (!legal6.some((id) => teamsOf(charTable[id]).includes(t))) warn(`DIY_EXCLUDED_TEAMS: no owned-6★ pick of team ${t}`);
   const ownedPool = legal6.filter((id) => !excluded.includes(id));
   for (const id of ownedPool) for (const st of diyStatuses.values()) addNeed(id, st);
 
@@ -1398,7 +1402,7 @@ function buildBackups(ctx, chess) {
     const hit = coreBonds.filter((b) => b.powerIdList.some((x) => powers.includes(x))).map((b) => b.bondId);
     operators[id] = {
       name: ch.name, rarity: rarityOf(ch), profession: ch.profession, subProfessionId: ch.subProfessionId,
-      obtainable: !ch.isNotObtainable, powers, bonds: hit.length ? hit : [fallback],
+      obtainable: !ch.isNotObtainable, powers, bonds: !DIY_COLLAB_SUPPORT.has(id) && hit.length ? hit : [fallback],
     };
   }
   return { units, tokens, diy: { slots, prototypes, locked, ownedPool, excluded, operators } };

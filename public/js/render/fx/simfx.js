@@ -72,6 +72,11 @@ export class FxSim {
     const p = chest(at.v);
     const s = p.s;
     switch (spec.a) {
+      case 'note': {
+        const tint = ex.arts ? 0xdb91ff : 0xffe5a8;
+        this.particle('orb', p.x, p.y, { tint, life: Math.max(0.04, dur), s0: s * 0.008, s1: s * 0.004, a0: 0.9 });
+        break;
+      }
       case 'blast': {
         if (r >= 12) { this.flashScreen(col, 0.5); break; }
         if (kind === 'bombard') { this._touchLocks(ex.id ?? ex.src ?? null); this._landed(ex.id ?? ex.src ?? null, at.x, at.y, r); }

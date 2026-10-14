@@ -332,7 +332,8 @@ export const VOICE_TAP_SLOTS = Object.freeze(['select']);
  * `audio.voiceJp`, the same slots and file names in the Japanese dub, and falls back to the Chinese line twice over: per
  * slot when the JP tree lacks it (a file the fetch could not get is left out of the manifest), and per line at play time
  * — `fallback` is the Chinese file of the same name, played when the host does not have the JP one (a full zip built
- * without the JP dub, before setup downloaded it). A slot with several lines draws one (`random` ∈ [0, 1)).
+ * without the JP dub, before setup downloaded it). If a slot has no Chinese recording, use its Japanese recording
+ * even under the Chinese preference (collaboration operators). A slot with several lines draws one (`random` ∈ [0, 1)).
  * @param {any} audio the manifest's `audio`
  * @param {string} charId
  * @param {string} slot
@@ -344,7 +345,7 @@ export function voiceLine(audio, charId, slot, lang = 'cn', random = Math.random
   const lines = (line) => (Array.isArray(line) ? line : [line]).filter((u) => typeof u === 'string' && u);
   const draw = (list) => (list.length ? list[Math.min(list.length - 1, Math.floor(random() * list.length))] : null);
   const cn = lines(audio?.voice?.[charId]?.[slot]);
-  const jp = lang === 'jp' ? draw(lines(audio?.voiceJp?.[charId]?.[slot])) : null;
+  const jp = lang === 'jp' || !cn.length ? draw(lines(audio?.voiceJp?.[charId]?.[slot])) : null;
   if (jp) {
     const file = (u) => u.slice(u.lastIndexOf('/') + 1);
     return { url: jp, fallback: cn.find((u) => file(u) === file(jp)) ?? draw(cn) };
