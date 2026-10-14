@@ -24,7 +24,8 @@ function request(url, { method = 'GET', cookie, body, origin = ORIGIN, headers =
       const chunks = []; res.on('data', (x) => chunks.push(x));
       res.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf8');
-        resolve({ status: res.statusCode, text, json: () => JSON.parse(text), cookie: res.headers['set-cookie']?.[0].split(';')[0] });
+        resolve({ status: res.statusCode, text, json: () => JSON.parse(text), cookie: res.headers['set-cookie']?.[0].split(';')[0],
+          setCookie: res.headers['set-cookie']?.[0] });
       });
     });
     req.on('error', reject); req.end(body === undefined ? undefined : JSON.stringify(body));
@@ -136,4 +137,61 @@ test('stock entry has no accounts UI or account API', async (t) => {
   const server = await startServer({ port: 0, host: '127.0.0.1', quiet: true, assetIndex: false }); t.after(() => server.close());
   assert.match((await request(server.url)).text, /src="\/js\/main.js"/);
   assert.notEqual((await request(server.url + '/_account/api/session')).status, 200);
+});
+
+test('public HTTP requires explicit opt-in without relaxing scheme or origin validation', () => {
+  for (const origin of ['http://game.example', 'http://192.0.2.10']) {
+    assert.throws(() => parseOrigin(origin), /HTTPS/);
+    assert.throws(() => parseOrigin(origin, { allowInsecureHttp: false }), /HTTPS/);
+    assert.throws(() => parseOrigin(origin, { allowInsecureHttp: '1' }), /HTTPS/);
+    assert.equal(parseOrigin(origin, { allowInsecureHttp: true }), origin);
+  }
+  for (const origin of ['http://localhost', 'http://127.0.0.1', 'http://[::1]', 'https://game.example']) {
+    assert.equal(parseOrigin(origin), origin);
+  }
+  for (const origin of ['ftp://game.example', 'ws://game.example', 'http://user:pass@game.example',
+    'http://game.example/path', 'http://game.example?x=1', 'http://game.example#x']) {
+    assert.throws(() => parseOrigin(origin, { allowInsecureHttp: true }));
+  }
+});
+
+test('opted-in public HTTP registers, logs in and saves with HTTP cookies and exact Origin checks', async (t) => {
+  const origin = 'http://192.0.2.10';
+  const h = await fixture(t, { origin, allowInsecureHttp: true });
+  const registered = await h.api('register', { method: 'POST', origin, body: { username: 'HttpUser', password: PASSWORD } });
+  assert.equal(registered.status, 200);
+  assert.match(registered.setCookie, /^sp-account-dev=/);
+  assert.match(registered.setCookie, /HttpOnly; SameSite=Strict/);
+  assert.doesNotMatch(registered.setCookie, /; Secure/);
+  const login = await h.api('login', { method: 'POST', origin, body: { username: 'HttpUser', password: PASSWORD } });
+  assert.equal(login.status, 200);
+  const user = login.json().user;
+  const data = { 'sp.pref.settings': { bgm: .27 }, 'sp.name': 'HTTP Player' };
+  const input = { method: 'PUT', origin, cookie: login.cookie, body: { userId: user.id, revision: 0, data } };
+  assert.equal((await h.api('save', { ...input, origin: 'http://other.example' })).status, 403);
+  assert.equal((await h.api('save', input)).status, 200);
+  assert.deepEqual((await h.api('save', { cookie: login.cookie })).json().data, data);
+  assert.deepEqual(JSON.parse(await readFile(path.join(h.dir, 'saves', user.id + '.json'), 'utf8')).data, data);
+  const secure = createAuth(h.server.accounts, 'https://game.example');
+  let cookie;
+  secure.login({ setHeader(_key, value) { cookie = value; } }, user);
+  assert.match(cookie, /^__Host-sp-account=/);
+  assert.match(cookie, /; Secure$/);
+});
+
+test('the deployment environment flag accepts only 1 and explicit options override it', async (t) => {
+  const previous = process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP;
+  t.after(() => {
+    if (previous === undefined) delete process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP;
+    else process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP = previous;
+  });
+  const origin = 'http://192.0.2.10';
+  for (const flag of ['0', 'true', '']) {
+    process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP = flag;
+    await assert.rejects(startAccountServer({ origin }), /HTTPS/);
+  }
+  process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP = '1';
+  await assert.rejects(startAccountServer({ origin, allowInsecureHttp: false }), /HTTPS/);
+  const h = await fixture(t, { origin });
+  assert.equal((await h.api('session')).status, 200);
 });

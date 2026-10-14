@@ -3,6 +3,9 @@
 可选的[账号与自动存档扩展](../extensions/accounts/README.md)提供主界面登录按钮。
 SQLite 只保存账号和会话，配置与原有战绩保存为明文 JSON；登录后自动保存并隐藏导入／导出按钮。
 普通 `npm start` 保持原有本地功能。扩展有独立启动入口，部署和备份方法见其说明。
+账号扩展默认要求公网 HTTPS；明确选择 HTTP 时，设置 `SP_ACCOUNT_ALLOW_INSECURE_HTTP=1` 和准确的
+`SP_ACCOUNT_ORIGIN=http://<公网地址>`。HTTP 不加密密码、会话和存档传输。服务需切换到扩展入口，
+并给独立持久化目录写权限；源码更新不能替代这一步，也不能删除账号和存档目录。
 
 目标：在一台家用 Windows 小主机上长期开服，让朋友通过局域网或公网来玩。macOS / Linux / Docker 放在后面。
 所有命令都在项目根目录执行。遇到问题先运行 `node tools/doctor.mjs`（只读诊断）。

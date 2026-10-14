@@ -27,7 +27,8 @@ upstream version with no login UI or account APIs.
 
 | Environment variable | Default | Purpose |
 |---|---|---|
-| `SP_ACCOUNT_ORIGIN` | Required | Exact public HTTPS origin; HTTP allowed only on loopback for local development |
+| `SP_ACCOUNT_ORIGIN` | Required | Exact public origin; HTTPS by default, HTTP allowed on loopback or with the explicit opt-in below |
+| `SP_ACCOUNT_ALLOW_INSECURE_HTTP` | Disabled | Set exactly `1` to allow a public HTTP origin; passwords, sessions and saves are then unencrypted in transit |
 | `SP_ACCOUNT_DATA` | `extensions/accounts/var` | Persistent directory for credentials and JSON saves |
 | `SP_ACCOUNT_REGISTRATION` | Open | Set `closed` to disable new registrations |
 | `HOST`, `PORT` | `127.0.0.1`, `3000` | Same listener settings as the game |
@@ -37,6 +38,28 @@ For public deployment, set `SP_ACCOUNT_ORIGIN=https://game.example.com` and use 
 instructions in [DEPLOY.md](../../docs/DEPLOY.md). Serve at the domain root and forward cookies, Origin and `/ws`
 upgrades. Keep the raw Node port private. A service must use this extension's entry, not the stock launch script.
 Use **one server process** and a local disk for each data directory.
+
+### Explicit public HTTP deployment
+
+For an owner-approved HTTP deployment, opt in explicitly; the default still rejects public HTTP:
+
+```bash
+SP_ACCOUNT_ORIGIN=http://43.132.176.216 SP_ACCOUNT_ALLOW_INSECURE_HTTP=1 \
+  SP_ACCOUNT_DATA=/var/lib/stronghold-accounts HOST=127.0.0.1 PORT=3000 \
+  node extensions/accounts/start.mjs
+```
+
+HTTP uses the existing non-Secure, HttpOnly, SameSite=Strict session cookie. Exact Origin checks, password hashing,
+rate limits, account isolation and save revision checks remain enabled. This does not encrypt traffic. Switching
+to HTTPS uses the Secure `__Host-` cookie again and requires signing in again; the database and saves are unchanged.
+
+For systemd, change `ExecStart` to `/opt/node/bin/node extensions/accounts/start.mjs`, add the account variables to
+the service environment file, and set `StateDirectory=stronghold-accounts` and `StateDirectoryMode=0700`. With
+`SP_ACCOUNT_DATA=/var/lib/stronghold-accounts`, the service user owns this persistent directory and can write it
+even under `ProtectSystem=strict`. Preserve the directory across source updates and back it up as described below.
+The account process replaces the stock process on the same private port; keep the existing WebSocket proxy.
+Set Nginx `client_max_body_size 9m` in the proxied location to accommodate the API's 8 MiB save plus its envelope;
+the API still enforces its own smaller limits on login and registration.
 
 ## Data and behavior
 

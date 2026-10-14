@@ -11,12 +11,13 @@ import { createRoutes, extendShell } from './server/http.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 export const defaultDataDir = () => path.resolve(process.env.SP_ACCOUNT_DATA || path.join(root, 'var'));
-export function parseOrigin(value) {
+export function parseOrigin(value, { allowInsecureHttp = false } = {}) {
   if (!value) throw new Error('Set SP_ACCOUNT_ORIGIN to the public HTTPS origin');
   const url = new URL(value);
   if (url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('Origin must have no path or credentials');
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) {
-    throw new Error('HTTPS required except for loopback development');
+  const httpAllowed = url.protocol === 'http:' && (allowInsecureHttp === true || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname));
+  if (url.protocol !== 'https:' && !httpAllowed) {
+    throw new Error('HTTPS required except for loopback development; set SP_ACCOUNT_ALLOW_INSECURE_HTTP=1 to allow public HTTP');
   }
   return url.origin;
 }
@@ -29,8 +30,9 @@ function canonical(file) {
   }
 }
 export async function startAccountServer(options = {}) {
-  const { origin: originOption, accountDataDir: dataDir = defaultDataDir(), registration = process.env.SP_ACCOUNT_REGISTRATION !== 'closed', sessionMs, ...upstream } = options;
-  const origin = parseOrigin(originOption ?? process.env.SP_ACCOUNT_ORIGIN);
+  const { origin: originOption, accountDataDir: dataDir = defaultDataDir(), registration = process.env.SP_ACCOUNT_REGISTRATION !== 'closed',
+    allowInsecureHttp = process.env.SP_ACCOUNT_ALLOW_INSECURE_HTTP === '1', sessionMs, ...upstream } = options;
+  const origin = parseOrigin(originOption ?? process.env.SP_ACCOUNT_ORIGIN, { allowInsecureHttp });
   // Both SQLite and readable saves must stay outside EVERY upstream static mount.
   for (const dir of ['public', 'data', 'shared', 'packs', 'server/sim'].map((d) => path.join(ROOT, d))
     .concat(['publicDir', 'dataDir', 'sharedDir', 'packsDir'].map((k) => upstream[k]).filter(Boolean))) {
